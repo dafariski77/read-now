@@ -10,6 +10,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export interface ScreenContainerProps {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ export interface ScreenContainerProps {
   contentContainerStyle?: ViewStyle;
   statusBarColor?: string;
   barStyle?: "default" | "light-content" | "dark-content";
+  hasBottomTabs?: boolean;
 }
 
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({
@@ -33,9 +35,16 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   contentContainerStyle,
   statusBarColor = Theme.Colors.background,
   barStyle = "dark-content",
+  hasBottomTabs = false,
 }) => {
+  const insets = useSafeAreaInsets();
+  
+  // Calculate bottom tab bar height matching CustomTabBar.tsx exactly
+  const bottomTabsPadding = hasBottomTabs ? 64 + Math.max(insets.bottom, 12) : 0;
+  const resolvedBottomPadding = (padding ? paddingVertical : 0) + bottomTabsPadding;
+
   const containerPaddingStyle: ViewStyle = padding
-    ? { paddingHorizontal, paddingVertical }
+    ? { paddingHorizontal, paddingTop: paddingVertical }
     : {};
 
   const content = scrollable ? (
@@ -45,13 +54,21 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
       contentContainerStyle={[
         styles.scrollContent,
         containerPaddingStyle,
+        { paddingBottom: resolvedBottomPadding },
         contentContainerStyle,
       ]}
     >
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.flexContainer, containerPaddingStyle, style]}>
+    <View 
+      style={[
+        styles.flexContainer, 
+        containerPaddingStyle, 
+        { paddingBottom: resolvedBottomPadding }, 
+        style
+      ]}
+    >
       {children}
     </View>
   );

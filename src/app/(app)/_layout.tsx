@@ -1,8 +1,7 @@
-import React from "react";
-import { Redirect, Stack } from "expo-router";
-import { useAuthStore } from "@/features/auth/store/useAuthStore";
-import { ActivityIndicator, View } from "react-native";
 import { Theme } from "@/core/themes";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import { Redirect, Stack } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
 
 export default function AppLayout() {
   const { user, loading } = useAuthStore();
@@ -27,5 +26,10 @@ export default function AppLayout() {
     return <Redirect href="/login" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+    </Stack>
+  );
 }
+

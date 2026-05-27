@@ -8,3 +8,6 @@ export { default as ProgressBar, ProgressBarProps } from "./ProgressBar";
 export { default as InputField, InputFieldProps } from "./InputField";
 export { default as Chip, ChipProps } from "./Chip";
 export { default as ScreenContainer, ScreenContainerProps } from "./ScreenContainer";
+export { default as ProgressCircle, ProgressCircleProps } from "./ProgressCircle";
+export { default as CustomTabBar } from "./CustomTabBar";
+

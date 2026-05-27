@@ -15,7 +15,7 @@ import {
   Text,
   Button,
   Card,
-  ProgressBar,
+  ProgressCircle,
   Chip,
 } from "@/core/components";
 
@@ -113,32 +113,41 @@ export default function HomeView() {
           </Text>
           
           <Card bordered surfaceColor="surfaceContainerLowest" elevation="low" style={styles.dashboardCard}>
-            <View style={styles.goalInfoRow}>
-              <View>
-                <Text variant="headline-md" color={Theme.Colors.onBackground}>
+            <View style={styles.goalCardContentRow}>
+              {/* Left stats & controls */}
+              <View style={styles.goalLeftColumn}>
+                <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.goalMinutesText}>
                   {dailyMinutesRead} of {dailyGoal} Mins
                 </Text>
-                <Text variant="label-sm" color={Theme.Colors.secondary}>
+                <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.goalSubText}>
                   Focused reading block goal
                 </Text>
+                
+                <View style={styles.manualControlsRow}>
+                  <Button
+                    title="-"
+                    variant="secondary"
+                    onPress={() => handleAdjustMinutes(-5)}
+                    style={styles.adjustBtn}
+                  />
+                  <Button
+                    title="+"
+                    variant="secondary"
+                    onPress={() => handleAdjustMinutes(5)}
+                    style={styles.adjustBtn}
+                  />
+                </View>
               </View>
-              <View style={styles.manualControlsRow}>
-                <Button
-                  title="-"
-                  variant="secondary"
-                  onPress={() => handleAdjustMinutes(-5)}
-                  style={styles.adjustBtn}
-                />
-                <Button
-                  title="+"
-                  variant="secondary"
-                  onPress={() => handleAdjustMinutes(5)}
-                  style={styles.adjustBtn}
+
+              {/* Right visual progress ring */}
+              <View style={styles.goalRightColumn}>
+                <ProgressCircle
+                  progress={dailyProgressRatio}
+                  size={92}
+                  strokeWidth={9}
                 />
               </View>
             </View>
-
-            <ProgressBar progress={dailyProgressRatio} style={styles.progressBarSpacing} />
 
             <View style={styles.goalFooterBox}>
               <Text variant="body-md" color={Theme.Colors.onSurfaceVariant}>
@@ -196,15 +205,23 @@ export default function HomeView() {
               A gorgeous journey into Barcelona's mysterious "Cemetery of Forgotten Books," where a young boy adopts a book that plunges him into a dark web of secrets.
             </Text>
 
-            <View style={styles.activeProgressInfo}>
-              <Text variant="label-sm" color={Theme.Colors.onSurfaceVariant}>
-                Completion Progression
-              </Text>
-              <Text variant="label-sm" color={Theme.Colors.primary}>
-                {activeBookPagesRead} of {activeBookTotalPages} pages ({Math.round(activeProgressRatio * 100)}%)
-              </Text>
+            <View style={styles.activeProgressCircleRow}>
+              <View style={styles.activeProgressCircleLeft}>
+                <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.activeProgressLabel}>
+                  COMPLETION PROGRESSION
+                </Text>
+                <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.activeProgressCount}>
+                  {activeBookPagesRead} of {activeBookTotalPages} pages
+                </Text>
+              </View>
+              <View style={styles.activeProgressCircleRight}>
+                <ProgressCircle
+                  progress={activeProgressRatio}
+                  size={68}
+                  strokeWidth={7}
+                />
+              </View>
             </View>
-            <ProgressBar progress={activeProgressRatio} style={styles.progressBarSpacing} />
 
             <View style={styles.activeManualControls}>
               <Button
@@ -289,7 +306,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingHorizontal: Theme.Spacing.marginMobile,
     paddingTop: Theme.Spacing.lg,
-    paddingBottom: Theme.Spacing.xl,
+    paddingBottom: Theme.Spacing.xl + 80,
   },
   brandHeaderRow: {
     flexDirection: "row",
@@ -342,11 +359,50 @@ const styles = StyleSheet.create({
     padding: Theme.Spacing.md,
     borderRadius: Theme.Roundness.lg,
   },
-  goalInfoRow: {
+  goalCardContentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Theme.Spacing.sm,
+    marginBottom: Theme.Spacing.md,
+  },
+  goalLeftColumn: {
+    flex: 1,
+  },
+  goalMinutesText: {
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  goalSubText: {
+    marginBottom: Theme.Spacing.md,
+  },
+  goalRightColumn: {
+    marginLeft: Theme.Spacing.md,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  activeProgressCircleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: Theme.Colors.surfaceContainerLow,
+    padding: Theme.Spacing.md,
+    borderRadius: Theme.Roundness.md,
+    marginBottom: Theme.Spacing.md,
+  },
+  activeProgressCircleLeft: {
+    flex: 1,
+  },
+  activeProgressLabel: {
+    fontWeight: "600",
+    fontSize: 10,
+    letterSpacing: 1.0,
+    marginBottom: 4,
+  },
+  activeProgressCount: {
+    fontWeight: "700",
+  },
+  activeProgressCircleRight: {
+    marginLeft: Theme.Spacing.md,
   },
   manualControlsRow: {
     flexDirection: "row",
@@ -357,9 +413,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.Spacing.sm,
     minHeight: 32,
     marginLeft: Theme.Spacing.xs,
-  },
-  progressBarSpacing: {
-    marginBottom: Theme.Spacing.md,
   },
   goalFooterBox: {
     backgroundColor: Theme.Colors.surfaceContainerLow,
