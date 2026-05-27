@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Pressable, ViewStyle, Animated } from "react-native";
-import { Theme } from "./theme";
+import { Theme } from "@/core/themes";
 import Text from "./Text";
 
 export interface ChipProps {

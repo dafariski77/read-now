@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Pressable, StyleSheet, Animated, ViewStyle, ActivityIndicator } from "react-native";
-import { Theme } from "./theme";
+import { Theme } from "@/core/themes";
 import Text from "./Text";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";

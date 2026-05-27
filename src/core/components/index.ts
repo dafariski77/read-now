@@ -1,4 +1,6 @@
-export { Theme, Colors, Spacing, Roundness, FontStyle, TypographyVariant } from "./theme";
+/**
+ * Quiet Reader - Components Entrypoint
+ */
 export { default as Text, TextProps } from "./Text";
 export { default as Button, ButtonProps, ButtonVariant } from "./Button";
 export { default as Card, CardProps } from "./Card";

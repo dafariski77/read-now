@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, ViewProps, ViewStyle, Platform } from "react-native";
-import { Theme } from "./theme";
+import { Theme } from "@/core/themes";
 
 export interface CardProps extends ViewProps {
   elevation?: "none" | "low" | "high";

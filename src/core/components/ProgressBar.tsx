@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View, Animated, ViewStyle } from "react-native";
-import { Theme } from "./theme";
+import { Theme } from "@/core/themes";
 
 export interface ProgressBarProps {
   progress: number; // 0 to 1

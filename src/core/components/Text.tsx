@@ -1,6 +1,6 @@
 import React from "react";
 import { Text as RNText, TextProps as RNTextProps, StyleSheet, TextStyle } from "react-native";
-import { Theme, TypographyVariant } from "./theme";
+import { Theme, TypographyVariant } from "@/core/themes";
 
 export interface TextProps extends RNTextProps {
   variant?: TypographyVariant;
