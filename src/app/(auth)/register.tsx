@@ -6,12 +6,10 @@ export default function RegisterRoute() {
   const router = useRouter();
 
   const handleSuccess = (moniker: string) => {
-    // Navigate home after successful sign-up
     router.replace("/home");
   };
 
   const handleNavigateToLogin = () => {
-    // Navigate to login screen
     router.push("/login" as any);
   };
 

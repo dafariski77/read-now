@@ -1,15 +1,8 @@
-import { Button, Card, InputField, Text } from "@/core/components";
+import { Button, Card, InputField, Text, ScreenContainer } from "@/core/components";
 import { Theme } from "@/core/themes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import * as z from "zod";
 import useAuth from "../hooks/useAuth";
 
@@ -52,14 +45,11 @@ export default function LoginView({
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.keyboardContainer}
+    <ScreenContainer
+      scrollable={true}
+      padding={false}
+      contentContainerStyle={styles.scrollContent}
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
         {/* Serene Brand Header */}
         <View style={styles.headerContainer}>
           <View style={styles.logoBadge}>
@@ -177,15 +167,11 @@ export default function LoginView({
             fullWidth
           />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",

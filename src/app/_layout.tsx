@@ -8,6 +8,7 @@ import {
   PlusJakartaSans_700Bold,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import * as SplashScreen from "expo-splash-screen";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -19,6 +20,11 @@ export default function RootLayout() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
   });
+
+  // Initialize Zustand Auth state listener on mount
+  useEffect(() => {
+    useAuthStore.getState().initialize();
+  }, []);
 
   useEffect(() => {
     if (loaded || error) {

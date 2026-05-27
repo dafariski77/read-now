@@ -1,7 +1,7 @@
 import React from "react";
-import { StyleSheet, View, ScrollView, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { StyleSheet, View, Alert } from "react-native";
 import { Theme } from "@/core/themes";
-import { Text, Button, Card, InputField } from "@/core/components";
+import { Text, Button, Card, InputField, ScreenContainer } from "@/core/components";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -45,14 +45,11 @@ export default function RegisterView({ onSuccess, onNavigateToLogin }: RegisterV
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.keyboardContainer}
+    <ScreenContainer
+      scrollable={true}
+      padding={false}
+      contentContainerStyle={styles.scrollContent}
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
         {/* Serene Brand Header */}
         <View style={styles.headerContainer}>
           <View style={styles.logoBadge}>
@@ -154,15 +151,12 @@ export default function RegisterView({ onSuccess, onNavigateToLogin }: RegisterV
             fullWidth
           />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardContainer: {
-    flex: 1,
-  },
+
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",

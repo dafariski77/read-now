@@ -3,6 +3,7 @@ import { StyleSheet, View, Animated, StatusBar, Dimensions } from "react-native"
 import { Theme } from "@/core/themes";
 import { Text } from "@/core/components";
 import { useRouter } from "expo-router";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 const { height } = Dimensions.get("window");
 
@@ -84,7 +85,8 @@ export default function SplashScreen() {
         useNativeDriver: true,
       }).start(() => {
         pulseAnimation.stop();
-        router.replace("/onboarding");
+        const { user } = useAuthStore.getState();
+        router.replace(user ? "/home" : "/onboarding");
       });
     }, 3200);
 
