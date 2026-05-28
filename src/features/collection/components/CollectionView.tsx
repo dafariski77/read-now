@@ -1,20 +1,12 @@
 import React from "react";
-import { StyleSheet, View, Dimensions } from "react-native";
+import { StyleSheet, View, Dimensions, Pressable, ActivityIndicator, RefreshControl, StatusBar } from "react-native";
 import { Theme } from "@/core/themes";
-import { Text, ScreenContainer, Card } from "@/core/components";
-import Svg, { Path, Circle } from "react-native-svg";
+import { Text, ScreenContainer, Card, Skeleton } from "@/core/components";
+import Svg, { Path } from "react-native-svg";
+import useCollection from "../hooks/useCollection";
+import CharacterAvatar from "./CharacterAvatar";
 
 const { width } = Dimensions.get("window");
-
-interface Companion {
-  id: string;
-  name: string;
-  milestone: string;
-  unlocked: boolean;
-  active?: boolean;
-  color: string;
-  avatarSvg: (activeColor: string) => React.ReactNode;
-}
 
 // Icon components for Collection page
 const LockIcon = ({ size = 20, color = Theme.Colors.onSurfaceVariant }) => (
@@ -39,126 +31,68 @@ const CheckIcon = ({ size = 12, color = "#ffffff" }) => (
   </Svg>
 );
 
-// We draw beautiful inline SVGs for our characters so they load instantly and look premium!
-const drawBloop = (color: string) => (
-  <Svg width={70} height={70} viewBox="0 0 100 100" fill="none">
-    {/* Body */}
-    <Circle cx="50" cy="50" r="40" fill={color} />
-    {/* Eyes */}
-    <Circle cx="38" cy="45" r="5" fill="#181c20" />
-    <Circle cx="62" cy="45" r="5" fill="#181c20" />
-    <Circle cx="36" cy="43" r="1.5" fill="#ffffff" />
-    <Circle cx="60" cy="43" r="1.5" fill="#ffffff" />
-    {/* Cheeks */}
-    <Circle cx="30" cy="52" r="4" fill="#ff8a80" opacity="0.6" />
-    <Circle cx="70" cy="52" r="4" fill="#ff8a80" opacity="0.6" />
-    {/* Smile */}
-    <Path d="M44 56q6 4 12 0" stroke="#181c20" strokeWidth="3" strokeLinecap="round" />
-    {/* Small Book in hand */}
-    <Path d="M42 66h16a2 2 0 012 2v10a2 2 0 01-2 2H42a2 2 0 01-2-2V68a2 2 0 012-2z" fill="#4352a5" />
-    <Path d="M50 66v14" stroke="#ffffff" strokeWidth="1.5" />
-  </Svg>
-);
-
-const drawSpecter = (color: string) => (
-  <Svg width={70} height={70} viewBox="0 0 100 100" fill="none">
-    {/* Body - Ghost shape */}
-    <Path d="M20 50 C20 30, 80 30, 80 50 C80 70, 75 80, 70 80 C60 80, 55 70, 50 80 C45 70, 40 80, 30 80 C25 80, 20 70, 20 50 Z" fill={color} />
-    {/* Big Spectacles */}
-    <Circle cx="36" cy="46" r="10" stroke="#181c20" strokeWidth="3" fill="#ffffff" fillOpacity="0.3" />
-    <Circle cx="64" cy="46" r="10" stroke="#181c20" strokeWidth="3" fill="#ffffff" fillOpacity="0.3" />
-    <Path d="M46 46h8" stroke="#181c20" strokeWidth="3" />
-    {/* Eyes */}
-    <Circle cx="36" cy="46" r="3" fill="#181c20" />
-    <Circle cx="64" cy="46" r="3" fill="#181c20" />
-    {/* Small mouth */}
-    <Circle cx="50" cy="60" r="4" fill="#181c20" />
-  </Svg>
-);
-
-const drawPages = (color: string) => (
-  <Svg width={70} height={70} viewBox="0 0 100 100" fill="none">
-    {/* Book Cover on Head shape */}
-    <Path d="M25 65V35c0-5 4-9 9-9h32c5 0 9 4 9 9v30c0 5-4 9-9 9H34c-5 0-9-4-9-9z" fill={color} />
-    {/* Inner Pages */}
-    <Path d="M30 65V38c0-3 2-5 5-5h30c3 0 5 2 5 5v27c0 3-2 5-5 5H35c-3 0-5-2-5-5z" fill="#ffffff" />
-    {/* Book Spine Center */}
-    <Path d="M50 33v37" stroke={color} strokeWidth="2" />
-    {/* Eyes on page */}
-    <Path d="M40 45q3-3 6 0" stroke="#181c20" strokeWidth="2.5" strokeLinecap="round" />
-    <Path d="M54 45q3-3 6 0" stroke="#181c20" strokeWidth="2.5" strokeLinecap="round" />
-    {/* Cute smile */}
-    <Path d="M48 55q2 2 4 0" stroke="#181c20" strokeWidth="2.5" strokeLinecap="round" />
-  </Svg>
-);
-
-const drawStacker = (color: string) => (
-  <Svg width={70} height={70} viewBox="0 0 100 100" fill="none">
-    {/* Stacking circles representing stack of books buddy */}
-    <Path d="M20 70h60v10H20z" fill={color} />
-    <Path d="M25 55h50v12H25z" fill={color} opacity="0.8" />
-    <Path d="M30 40h40v12H30z" fill={color} opacity="0.6" />
-    {/* Animated eyes on top book */}
-    <Circle cx="44" cy="46" r="3" fill="#181c20" />
-    <Circle cx="56" cy="46" r="3" fill="#181c20" />
-  </Svg>
-);
-
-const COMPANIONS: Companion[] = [
-  {
-    id: "c1",
-    name: "Bookish Bloop",
-    milestone: "Starter Companion",
-    unlocked: true,
-    color: "#e8efff",
-    avatarSvg: (c) => drawBloop(c),
-  },
-  {
-    id: "c2",
-    name: "Specs Specter",
-    milestone: "Read 10 Books",
-    unlocked: true,
-    color: "#f6eeff",
-    avatarSvg: (c) => drawSpecter(c),
-  },
-  {
-    id: "c3",
-    name: "Pages",
-    milestone: "Read 25 Books",
-    unlocked: true,
-    active: true,
-    color: "#fff5eb",
-    avatarSvg: (c) => drawPages(c),
-  },
-  {
-    id: "c4",
-    name: "Stacker",
-    milestone: "Read 50 Books",
-    unlocked: false,
-    color: "#eef1f6",
-    avatarSvg: (c) => drawStacker(c),
-  },
-  {
-    id: "c5",
-    name: "Romance Reader",
-    milestone: "Read 10 Romance",
-    unlocked: false,
-    color: "#eef1f6",
-    avatarSvg: (c) => drawBloop(c),
-  },
-  {
-    id: "c6",
-    name: "Dreamer",
-    milestone: "100 Days Streak",
-    unlocked: false,
-    color: "#eef1f6",
-    avatarSvg: (c) => drawSpecter(c),
-  },
-];
-
 export default function CollectionView() {
+  const {
+    loading,
+    characters,
+    unlockedIds,
+    activeId,
+    loadCollection,
+    selectActiveCompanion,
+  } = useCollection();
+
+  const handleRefresh = () => {
+    loadCollection();
+  };
+
+  const handleSelectCompanion = async (companion: any) => {
+    await selectActiveCompanion(companion);
+  };
+
+  const unlockedCount = characters.filter((c) => unlockedIds.has(c.id)).length;
+
+  if (loading && characters.length === 0) {
+    return (
+      <ScreenContainer scrollable={false} hasBottomTabs style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={Theme.Colors.background} />
+        
+        {/* Title area Skeleton */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerRow}>
+            <View style={{ gap: 6 }}>
+              <Skeleton width={200} height={26} />
+              <Skeleton width={260} height={16} />
+            </View>
+            <Skeleton width={110} height={28} borderRadius={14} style={{ marginTop: 8 }} />
+          </View>
+        </View>
+
+        {/* Grid of Companions Skeleton */}
+        <View style={styles.gridContainer}>
+          {Array.from({ length: 4 }).map((_, index) => (
+            <View key={index} style={styles.pressableWrapper}>
+              <Card style={[styles.companionCard, { gap: 12 }]}>
+                <Skeleton width={76} height={76} borderRadius={38} />
+                <Skeleton width={100} height={16} />
+                <Skeleton width={80} height={12} />
+              </Card>
+            </View>
+          ))}
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <ScreenContainer scrollable padding={false} hasBottomTabs style={styles.container}>
+    <ScreenContainer 
+      scrollable 
+      padding={false} 
+      hasBottomTabs 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={loading} onRefresh={handleRefresh} colors={[Theme.Colors.primary]} />
+      }
+    >
       {/* Title area */}
       <View style={styles.headerSection}>
         <View style={styles.headerRow}>
@@ -172,7 +106,7 @@ export default function CollectionView() {
           </View>
           <View style={styles.statusBadge}>
             <Text variant="label-sm" color={Theme.Colors.primary} style={styles.statusText}>
-              3 / 6 Unlocked
+              {unlockedCount} / {characters.length} Unlocked
             </Text>
           </View>
         </View>
@@ -180,79 +114,81 @@ export default function CollectionView() {
 
       {/* Grid of Companions */}
       <View style={styles.gridContainer}>
-        {COMPANIONS.map((companion) => {
-          const isLocked = !companion.unlocked;
-          const isActive = companion.active;
+        {characters.map((companion) => {
+          const isUnlocked = unlockedIds.has(companion.id);
+          const isLocked = !isUnlocked;
+          const isActive = companion.id === activeId;
 
           return (
-            <Card
-              key={companion.id}
-              style={[
-                styles.companionCard,
-                isActive && styles.activeCompanionCard,
-                isLocked && styles.lockedCompanionCard,
-              ]}
-            >
-              {/* Top status tag */}
-              {isActive && (
-                <View style={styles.activeTag}>
-                  <Text variant="label-sm" color={Theme.Colors.onPrimaryContainer} style={styles.activeTagText}>
-                    Active
-                  </Text>
-                </View>
-              )}
-
-              {/* Unlocked claim checkmark badge at top-right */}
-              {companion.unlocked && !isActive && (
-                <View style={styles.claimBadge}>
-                  <CheckIcon />
-                </View>
-              )}
-
-              {/* Avatar circle */}
-              <View
+            <Pressable key={companion.id} onPress={() => handleSelectCompanion(companion)} style={styles.pressableWrapper}>
+              <Card
                 style={[
-                  styles.avatarBg,
-                  { backgroundColor: isLocked ? "#ebeef3" : companion.color },
-                  isLocked && styles.lockedAvatarBg,
+                  styles.companionCard,
+                  isActive && styles.activeCompanionCard,
+                  isLocked && styles.lockedCompanionCard,
                 ]}
               >
-                {companion.avatarSvg(
-                  isLocked
-                    ? Theme.Colors.outline
-                    : companion.id === "c1"
-                    ? "#5c6bc0"
-                    : companion.id === "c2"
-                    ? "#ab47bc"
-                    : "#ff9800"
-                )}
-
-                {/* Overlaid Lock Icon */}
-                {isLocked && (
-                  <View style={styles.lockOverlay}>
-                    <LockIcon size={22} />
+                {/* Top status tag */}
+                {isActive && (
+                  <View style={styles.activeTag}>
+                    <Text variant="label-sm" color={Theme.Colors.onPrimaryContainer} style={styles.activeTagText}>
+                      Active
+                    </Text>
                   </View>
                 )}
-              </View>
 
-              {/* Character Details */}
-              <View style={styles.cardInfo}>
-                <Text
-                  variant="label-md"
-                  color={isLocked ? Theme.Colors.onSurfaceVariant : Theme.Colors.onSurface}
-                  style={[styles.companionName, isLocked && styles.lockedText]}
+                {/* Unlocked claim checkmark badge at top-right */}
+                {isUnlocked && !isActive && (
+                  <View style={styles.claimBadge}>
+                    <CheckIcon />
+                  </View>
+                )}
+
+                {/* Avatar circle */}
+                <View
+                  style={[
+                    styles.avatarBg,
+                    isLocked && styles.lockedAvatarBg,
+                  ]}
                 >
-                  {companion.name}
-                </Text>
-                <Text
-                  variant="label-sm"
-                  color={isActive ? Theme.Colors.primary : Theme.Colors.secondary}
-                  style={[styles.milestoneText, isLocked && styles.lockedText]}
-                >
-                  {companion.milestone}
-                </Text>
-              </View>
-            </Card>
+                  <CharacterAvatar
+                    illustrationUrl={companion.illustration_url}
+                    size={76}
+                    locked={isLocked}
+                  />
+
+                  {/* Overlaid Lock Icon */}
+                  {isLocked && (
+                    <View style={styles.lockOverlay}>
+                      <LockIcon size={22} />
+                    </View>
+                  )}
+                </View>
+
+                {/* Character Details */}
+                <View style={styles.cardInfo}>
+                  <Text
+                    variant="label-md"
+                    color={isLocked ? Theme.Colors.onSurfaceVariant : Theme.Colors.onSurface}
+                    style={[styles.companionName, isLocked && styles.lockedText]}
+                  >
+                    {companion.name}
+                  </Text>
+                  <Text
+                    variant="label-sm"
+                    color={isActive ? Theme.Colors.primary : Theme.Colors.secondary}
+                    style={[styles.milestoneText, isLocked && styles.lockedText]}
+                    numberOfLines={2}
+                  >
+                    {companion.condition_type === "TOTAL_BOOKS_READ"
+                      ? companion.condition_value === 0 
+                        ? "Starter Companion"
+                        : `Read ${companion.condition_value} Books`
+                      : `Read ${companion.condition_value} in ${companion.name.includes("Romance") ? "Romance" : "Genre"}`}
+                  </Text>
+                </View>
+              </Card>
+            </Pressable>
           );
         })}
       </View>
@@ -264,6 +200,16 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Theme.Colors.background,
     paddingBottom: 40,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.Colors.background,
+  },
+  loadingText: {
+    marginTop: Theme.Spacing.md,
+    color: Theme.Colors.secondary,
   },
   headerSection: {
     paddingHorizontal: Theme.Spacing.marginMobile,
@@ -300,15 +246,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.Spacing.marginMobile - 6,
     justifyContent: "space-between",
   },
-  companionCard: {
+  pressableWrapper: {
     width: (width - Theme.Spacing.marginMobile * 2 - 12) / 2,
+    marginBottom: 16,
+  },
+  companionCard: {
+    width: "100%",
     backgroundColor: Theme.Colors.surfaceContainerLowest,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(198, 197, 211, 0.2)",
     padding: Theme.Spacing.md,
     alignItems: "center",
-    marginBottom: 16,
     position: "relative",
     elevation: 2,
     shadowColor: "#000",
@@ -391,6 +340,7 @@ const styles = StyleSheet.create({
   milestoneText: {
     fontSize: 11,
     fontWeight: "600",
+    textAlign: "center",
   },
   lockedText: {
     color: Theme.Colors.outline,

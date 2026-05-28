@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -14,9 +14,10 @@ import { Button, Text } from "@/core/components";
 import {
   WelcomeStep,
   GoalsStep,
-  ProgressStep,
+  GenresStep,
   CompanionStep,
 } from "@/features/onboarding/components";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 const { width } = Dimensions.get("window");
 
@@ -27,22 +28,9 @@ export default function OnboardingScreen() {
 
   // User responses
   const [readingGoal, setReadingGoal] = useState("30 Mins");
-  const [simulatedProgress, setSimulatedProgress] = useState(0.3);
-  const [selectedCompanion, setSelectedCompanion] = useState<string>("fennec");
+  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [selectedCompanion, setSelectedCompanion] = useState<string>("bookish_bloop");
   const [moniker, setMoniker] = useState("");
-
-  // Simulate progress automatic breathing animation for Step 2
-  useEffect(() => {
-    if (currentStep === 2) {
-      const interval = setInterval(() => {
-        setSimulatedProgress((p) => {
-          if (p >= 0.9) return 0.2;
-          return parseFloat((p + 0.15).toFixed(2));
-        });
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [currentStep]);
 
   // Transition helpers
   const handleScroll = (event: any) => {
@@ -59,7 +47,13 @@ export default function OnboardingScreen() {
       scrollViewRef.current?.scrollTo({ x: nextStep * width, animated: true });
       setCurrentStep(nextStep);
     } else {
-      router.replace("/login");
+      // Save responses globally
+      useAuthStore.getState().setOnboardingData({
+        readingGoal,
+        companion: selectedCompanion,
+        genres: selectedGenres,
+      });
+      router.replace("/register" as any);
     }
   };
 
@@ -89,7 +83,7 @@ export default function OnboardingScreen() {
 
         <View style={styles.skipBtnWrapper}>
           {currentStep < 3 && (
-            <Pressable onPress={() => router.replace("/login")} style={styles.skipBtnTouch}>
+            <Pressable onPress={() => router.replace("/register" as any)} style={styles.skipBtnTouch}>
               <Text variant="label-md" color={Theme.Colors.secondary}>
                 Skip
               </Text>
@@ -115,9 +109,9 @@ export default function OnboardingScreen() {
           <GoalsStep readingGoal={readingGoal} setReadingGoal={setReadingGoal} />
         </View>
         <View style={styles.slidePage}>
-          <ProgressStep
-            simulatedProgress={simulatedProgress}
-            setSimulatedProgress={setSimulatedProgress}
+          <GenresStep
+            selectedGenres={selectedGenres}
+            setSelectedGenres={setSelectedGenres}
           />
         </View>
         <View style={styles.slidePage}>

@@ -3,5 +3,5 @@
  */
 export { default as WelcomeStep } from "./WelcomeStep";
 export { default as GoalsStep } from "./GoalsStep";
-export { default as ProgressStep } from "./ProgressStep";
+export { default as GenresStep } from "./GenresStep";
 export { default as CompanionStep } from "./CompanionStep";

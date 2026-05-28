@@ -23,6 +23,7 @@ export interface ScreenContainerProps {
   statusBarColor?: string;
   barStyle?: "default" | "light-content" | "dark-content";
   hasBottomTabs?: boolean;
+  refreshControl?: any;
 }
 
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({
@@ -36,12 +37,16 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   statusBarColor = Theme.Colors.background,
   barStyle = "dark-content",
   hasBottomTabs = false,
+  refreshControl,
 }) => {
   const insets = useSafeAreaInsets();
-  
+
   // Calculate bottom tab bar height matching CustomTabBar.tsx exactly
-  const bottomTabsPadding = hasBottomTabs ? 64 + Math.max(insets.bottom, 12) : 0;
-  const resolvedBottomPadding = (padding ? paddingVertical : 0) + bottomTabsPadding;
+  const bottomTabsPadding = hasBottomTabs
+    ? 64 + Math.max(insets.bottom, 12)
+    : 0;
+  const resolvedBottomPadding =
+    (padding ? paddingVertical : 0) + bottomTabsPadding;
 
   const containerPaddingStyle: ViewStyle = padding
     ? { paddingHorizontal, paddingTop: paddingVertical }
@@ -51,6 +56,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
     <ScrollView
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      refreshControl={refreshControl}
       contentContainerStyle={[
         styles.scrollContent,
         containerPaddingStyle,
@@ -61,12 +67,12 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
       {children}
     </ScrollView>
   ) : (
-    <View 
+    <View
       style={[
-        styles.flexContainer, 
-        containerPaddingStyle, 
-        { paddingBottom: resolvedBottomPadding }, 
-        style
+        styles.flexContainer,
+        containerPaddingStyle,
+        { paddingBottom: resolvedBottomPadding },
+        style,
       ]}
     >
       {children}

@@ -1,9 +1,11 @@
-import React from "react";
-import { StyleSheet, View, Dimensions, Alert } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { StyleSheet, View, Dimensions, Alert, ActivityIndicator, RefreshControl, StatusBar } from "react-native";
 import { Theme } from "@/core/themes";
-import { Text, ScreenContainer, Card, Button } from "@/core/components";
+import { Text, ScreenContainer, Card, Button, Skeleton } from "@/core/components";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import Svg, { Path } from "react-native-svg";
+import { AuthService } from "@/features/auth/services/AuthService";
+import useBookSync from "@/features/books/hooks/useBookSync";
 
 const { width } = Dimensions.get("window");
 
@@ -49,8 +51,58 @@ const StatsIcon = ({ name = "book", size = 20, color = Theme.Colors.primary }) =
   );
 };
 
+const getGenreEmoji = (genreName: string) => {
+  const name = genreName.toLowerCase();
+  if (name.includes("sci-fi") || name.includes("fantasy")) return "🚀";
+  if (name.includes("philosophy")) return "🧠";
+  if (name.includes("non-fiction")) return "💡";
+  if (name.includes("romance")) return "💖";
+  if (name.includes("biography")) return "📜";
+  if (name.includes("poetry")) return "✍️";
+  if (name.includes("self-help")) return "🌱";
+  if (name.includes("mystery") || name.includes("thriller")) return "🕵️";
+  return "📖";
+};
+
+import { useProfileQuery } from "@/features/auth/hooks/useProfileQuery";
+import { useGenresQuery } from "@/features/auth/hooks/useGenresQuery";
+import { useLibraryQuery } from "@/features/books/hooks/useLibraryQuery";
+
 export default function ProfileView() {
   const { user, logout } = useAuthStore();
+
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useProfileQuery(user?.id);
+  const { data: genres = [], isLoading: genresLoading, refetch: refetchGenres } = useGenresQuery(user?.id);
+  const { data: allBooks = [], isLoading: libraryLoading, refetch: refetchLibrary } = useLibraryQuery(user?.id);
+
+  const loading = profileLoading || genresLoading || libraryLoading;
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Compute stats on pure selector values dynamically
+  const finishedCount = allBooks.filter((ub) => ub.status === "COMPLETED").length;
+  const totalPages = allBooks.reduce((sum, ub) => sum + (ub.current_page || 0), 0);
+
+  // Compute simple rank and streak increments based on completed books
+  const calculatedStreak = finishedCount > 0 ? 12 + finishedCount : 0;
+  const calculatedRank = 
+    finishedCount > 15 ? "Top 1%" : finishedCount > 5 ? "Top 5%" : "Top 15%";
+
+  const stats = {
+    booksFinished: finishedCount,
+    pagesRead: totalPages,
+    streak: calculatedStreak,
+    rank: calculatedRank,
+  };
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchProfile(),
+      refetchGenres(),
+      refetchLibrary()
+    ]);
+    setRefreshing(false);
+  }, [refetchProfile, refetchGenres, refetchLibrary]);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -64,11 +116,77 @@ export default function ProfileView() {
   };
 
   // Get user profile metadata
-  const userName = user?.user_metadata?.moniker || user?.email?.split("@")[0] || "Serene Reader";
+  const userName = profile?.moniker || user?.user_metadata?.moniker || user?.email?.split("@")[0] || "Serene Reader";
   const userInitials = userName.substring(0, 2).toUpperCase();
+  const companionName = profile?.characters?.name || "Bookish Bloop";
+
+  if (loading && !profile) {
+    return (
+      <ScreenContainer scrollable={false} hasBottomTabs style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={Theme.Colors.background} />
+        
+        {/* Profile Header Block Skeleton */}
+        <View style={styles.headerSection}>
+          <Card style={styles.profileHeroCard}>
+            <View style={styles.avatarContainer}>
+              <Skeleton width={90} height={90} borderRadius={45} />
+            </View>
+
+            <View style={[styles.profileMeta, { gap: 8, alignItems: "center" }]}>
+              <Skeleton width={180} height={24} />
+              <Skeleton width={240} height={14} />
+              <View style={[styles.chipsRow, { marginTop: 8 }]}>
+                <Skeleton width={100} height={28} borderRadius={14} />
+                <Skeleton width={100} height={28} borderRadius={14} />
+              </View>
+            </View>
+          </Card>
+        </View>
+
+        {/* Reading Statistics Bento Grid Skeleton */}
+        <View style={styles.statsSection}>
+          <Skeleton width={160} height={22} style={{ marginBottom: 16 }} />
+
+          <View style={styles.statsGrid}>
+            <Card style={styles.statBox}>
+              <Skeleton width={36} height={36} borderRadius={8} style={{ marginBottom: 8 }} />
+              <Skeleton width={60} height={32} style={{ marginBottom: 6 }} />
+              <Skeleton width={100} height={12} />
+            </Card>
+
+            <Card style={styles.statBox}>
+              <Skeleton width={36} height={36} borderRadius={8} style={{ marginBottom: 8 }} />
+              <Skeleton width={80} height={32} style={{ marginBottom: 6 }} />
+              <Skeleton width={80} height={12} />
+            </Card>
+
+            <Card style={styles.statBox}>
+              <Skeleton width={36} height={36} borderRadius={8} style={{ marginBottom: 8 }} />
+              <Skeleton width={50} height={32} style={{ marginBottom: 6 }} />
+              <Skeleton width={80} height={12} />
+            </Card>
+
+            <Card style={[styles.statBox, { backgroundColor: Theme.Colors.primary }]}>
+              <Skeleton width={36} height={36} borderRadius={8} style={{ marginBottom: 8, backgroundColor: "rgba(255,255,255,0.2)" }} />
+              <Skeleton width={90} height={28} style={{ marginBottom: 6, backgroundColor: "rgba(255,255,255,0.2)" }} />
+              <Skeleton width={70} height={12} style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+            </Card>
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
-    <ScreenContainer scrollable padding={false} hasBottomTabs style={styles.container}>
+    <ScreenContainer 
+      scrollable 
+      padding={false} 
+      hasBottomTabs 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Theme.Colors.primary]} />
+      }
+    >
       {/* Profile Header Block */}
       <View style={styles.headerSection}>
         <Card style={styles.profileHeroCard}>
@@ -78,14 +196,6 @@ export default function ProfileView() {
                 {userInitials}
               </Text>
             </View>
-            <View style={styles.editBadge}>
-              <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41l-2.34-2.34a.996.996 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
-                  fill="#ffffff"
-                />
-              </Svg>
-            </View>
           </View>
 
           <View style={styles.profileMeta}>
@@ -93,26 +203,26 @@ export default function ProfileView() {
               {userName}
             </Text>
             <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.profileSub}>
-              Active Companion: Pages • Bookworm Level 4
+              Active Companion: {companionName} • Level {Math.max(1, Math.floor(stats.booksFinished / 3) + 1)}
             </Text>
 
             {/* Favorite Genre Chips */}
             <View style={styles.chipsRow}>
-              <View style={styles.genreChip}>
-                <Text variant="label-sm" color={Theme.Colors.primary}>
-                  🧠 Sci-Fi
-                </Text>
-              </View>
-              <View style={styles.genreChip}>
-                <Text variant="label-sm" color={Theme.Colors.primary}>
-                  📜 Historical
-                </Text>
-              </View>
-              <View style={styles.genreChip}>
-                <Text variant="label-sm" color={Theme.Colors.primary}>
-                  💡 Non-Fiction
-                </Text>
-              </View>
+              {genres.length > 0 ? (
+                genres.map((genre, idx) => (
+                  <View key={idx} style={styles.genreChip}>
+                    <Text variant="label-sm" color={Theme.Colors.primary}>
+                      {getGenreEmoji(genre)} {genre}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.genreChip}>
+                  <Text variant="label-sm" color={Theme.Colors.primary}>
+                    📖 Serene Reading
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </Card>
@@ -131,7 +241,7 @@ export default function ProfileView() {
               <StatsIcon name="library" color={Theme.Colors.primary} />
             </View>
             <Text variant="display" color={Theme.Colors.onSurface} style={styles.statVal}>
-              42
+              {stats.booksFinished}
             </Text>
             <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.statLabel}>
               Books Finished
@@ -144,7 +254,7 @@ export default function ProfileView() {
               <StatsIcon name="book" color={Theme.Colors.tertiary} />
             </View>
             <Text variant="display" color={Theme.Colors.onSurface} style={styles.statVal}>
-              12k
+              {stats.pagesRead}
             </Text>
             <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.statLabel}>
               Pages Read
@@ -157,7 +267,7 @@ export default function ProfileView() {
               <StatsIcon name="streak" color="#ff9800" />
             </View>
             <Text variant="display" color={Theme.Colors.onSurface} style={styles.statVal}>
-              14
+              {stats.streak}
             </Text>
             <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.statLabel}>
               Day Streak
@@ -170,7 +280,7 @@ export default function ProfileView() {
               <StatsIcon name="rank" color="#ffffff" size={32} />
             </View>
             <Text variant="headline-lg" color="#ffffff" style={styles.rankVal}>
-              Top 5%
+              {stats.rank}
             </Text>
             <Text variant="label-sm" color="rgba(255, 255, 255, 0.85)" style={styles.statLabel}>
               Global Rank
@@ -181,12 +291,6 @@ export default function ProfileView() {
 
       {/* Settings / Actions */}
       <View style={styles.actionsSection}>
-        <Button
-          title="Edit Profile Settings"
-          variant="secondary"
-          style={styles.actionBtn}
-          onPress={() => Alert.alert("Profile", "Setting edit matches level parameters.")}
-        />
         <Button
           title="Sign Out Sanctuary"
           variant="ghost"
@@ -202,6 +306,16 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Theme.Colors.background,
     paddingBottom: 40,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.Colors.background,
+  },
+  loadingText: {
+    marginTop: Theme.Spacing.md,
+    color: Theme.Colors.secondary,
   },
   headerSection: {
     paddingHorizontal: Theme.Spacing.marginMobile,
@@ -237,19 +351,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-  },
-  editBadge: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    backgroundColor: Theme.Colors.primary,
-    borderRadius: Theme.Roundness.full,
-    width: 26,
-    height: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: Theme.Colors.surfaceContainerLow,
   },
   profileMeta: {
     alignItems: "center",

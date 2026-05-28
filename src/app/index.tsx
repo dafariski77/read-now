@@ -85,8 +85,12 @@ export default function SplashScreen() {
         useNativeDriver: true,
       }).start(() => {
         pulseAnimation.stop();
-        const { user } = useAuthStore.getState();
-        router.replace(user ? "/home" : "/onboarding");
+        const { user, isProfileSetup } = useAuthStore.getState();
+        if (user) {
+          router.replace(isProfileSetup === false ? "/setup-profile" : "/home");
+        } else {
+          router.replace("/onboarding");
+        }
       });
     }, 3200);
 

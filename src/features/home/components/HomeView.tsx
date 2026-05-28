@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -8,6 +8,8 @@ import {
   Alert,
   Pressable,
   Dimensions,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Theme } from "@/core/themes";
@@ -17,11 +19,21 @@ import {
   Card,
   ProgressCircle,
   Chip,
+  Skeleton,
 } from "@/core/components";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import useBookSync, { UserBook, ExternalBook } from "@/features/books/hooks/useBookSync";
+import { AuthService } from "@/features/auth/services/AuthService";
+import { BookService } from "@/features/books/services/BookService";
+import CharacterAvatar from "@/features/collection/components/CharacterAvatar";
+
+import { useProfileQuery } from "@/features/auth/hooks/useProfileQuery";
+import { useLibraryQuery } from "@/features/books/hooks/useLibraryQuery";
+import { useTodayMinutesQuery } from "@/features/books/hooks/useTodayMinutesQuery";
 
 const { width } = Dimensions.get("window");
 
-interface Book {
+interface CuratedBook {
   id: string;
   title: string;
   author: string;
@@ -30,49 +42,192 @@ interface Book {
   pages: number;
 }
 
-const RECOMMENDED_BOOKS: Book[] = [
-  { id: "1", title: "Meditations", author: "Marcus Aurelius", genre: "Philosophy", coverColor: "#4352a5", pages: 254 },
-  { id: "2", title: "The Wind-Up Bird Chronicle", author: "Haruki Murakami", genre: "Fiction", coverColor: "#5c6bc0", pages: 607 },
-  { id: "3", title: "Leaves of Grass", author: "Walt Whitman", genre: "Poetry", coverColor: "#565a5c", pages: 422 },
+const RECOMMENDED_BOOKS: CuratedBook[] = [
+  { id: "rec1", title: "Meditations", author: "Marcus Aurelius", genre: "Philosophy", coverColor: "#4352a5", pages: 254 },
+  { id: "rec2", title: "The Wind-Up Bird Chronicle", author: "Haruki Murakami", genre: "Fiction", coverColor: "#5c6bc0", pages: 607 },
+  { id: "rec3", title: "Leaves of Grass", author: "Walt Whitman", genre: "Poetry", coverColor: "#565a5c", pages: 422 },
 ];
 
 export default function HomeView() {
   const router = useRouter();
-  
-  // Interactive goals & progress states
-  const [dailyMinutesRead, setDailyMinutesRead] = useState(25);
+  const { user } = useAuthStore();
+  const { updateReadingProgress, addBookToLibrary } = useBookSync();
+
   const dailyGoal = 45;
-  
-  const [activeBookPagesRead, setActiveBookPagesRead] = useState(219);
-  const activeBookTotalPages = 487;
+
+  // 1. Fetch profile with active companion via React Query
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useProfileQuery(user?.id);
+
+  // 2. Fetch active reading books from synced hooks ViewModel via React Query
+  const { data: activeBooks = [], isLoading: libraryLoading, refetch: refetchLibrary } = useLibraryQuery(user?.id, "READING");
+
+  // 3. Fetch today's minutes read estimation via React Query
+  const { data: dailyMinutesRead = 0, isLoading: minutesLoading, refetch: refetchMinutes } = useTodayMinutesQuery(user?.id, dailyGoal);
+
+  // Loading state
+  const loading = profileLoading || libraryLoading || minutesLoading;
+
+  // Refreshing state mappers
+  const [refreshing, setRefreshing] = useState(false);
+  const [localMinutesRead, setLocalMinutesRead] = useState<number | null>(null);
+
+  const displayMinutesRead = localMinutesRead !== null ? localMinutesRead : dailyMinutesRead;
+
+  // Sync local minutes state when query data changes
+  useEffect(() => {
+    setLocalMinutesRead(null);
+  }, [dailyMinutesRead]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchProfile(),
+      refetchLibrary(),
+      refetchMinutes()
+    ]);
+    setRefreshing(false);
+  }, [refetchProfile, refetchLibrary, refetchMinutes]);
 
   const handleAdjustMinutes = (amount: number) => {
-    setDailyMinutesRead((prev) => Math.max(0, Math.min(dailyGoal, prev + amount)));
+    setLocalMinutesRead((prev) => {
+      const current = prev !== null ? prev : dailyMinutesRead;
+      return Math.max(0, Math.min(dailyGoal, current + amount));
+    });
   };
 
-  const handleAdjustPages = (amount: number) => {
-    setActiveBookPagesRead((prev) => Math.max(0, Math.min(activeBookTotalPages, prev + amount)));
+  const handleAdjustPages = async (userBook: UserBook, amount: number) => {
+    const totalPages = userBook.books?.total_pages || 100;
+    const newPage = Math.max(0, Math.min(totalPages, userBook.current_page + amount));
+    
+    // Call sync hook to update database progress and logs (automatically invalidates React Query!)
+    const updated = await updateReadingProgress(userBook.id, newPage);
+    if (updated) {
+      // If book page met total pages, trigger completed celebration
+      if (newPage >= totalPages) {
+        Alert.alert(
+          "🎉 Sanctuary Celebration!",
+          `Congratulations on finishing "${userBook.books?.title}"! You have completed a massive reading block and unlocked milestone companions!`,
+          [{ text: "Awesome!" }]
+        );
+      }
+    } else {
+      Alert.alert("Error", "Could not sync progress, please check database migrations.");
+    }
   };
 
-  const handleBookTap = (book: Book) => {
+  const handleBookTap = (book: CuratedBook) => {
+    const externalBook: ExternalBook = {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      totalPages: book.pages,
+      coverImageUrl: `https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=120`,
+      genreName: book.genre,
+    };
+
     Alert.alert(
       "Quiet Reader Library",
       `"${book.title}" by ${book.author}\nGenre: ${book.genre}\nLength: ${book.pages} pages\n\nWould you like to start reading this book?`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Add to Active Reading", onPress: () => Alert.alert("Sanctuary Update", `"${book.title}" is now set as your active book!`) }
+        { 
+          text: "Add to Active Reading", 
+          onPress: async () => {
+            const added = await addBookToLibrary(externalBook, "READING");
+            if (added) {
+              Alert.alert("Sanctuary Update", `"${book.title}" is now set as your active reading book!`);
+            } else {
+              Alert.alert("Sanctuary Update", "Failed to add book. Please make sure database is seeded.");
+            }
+          } 
+        }
       ]
     );
   };
 
+  const dailyProgressRatio = displayMinutesRead / dailyGoal;
+
+  // Primary active reading book
+  const activeUserBook = activeBooks.length > 0 ? activeBooks[0] : null;
+  const activeBookPagesRead = activeUserBook?.current_page || 0;
+  const activeBookTotalPages = activeUserBook?.books?.total_pages || 100;
   const activeProgressRatio = activeBookPagesRead / activeBookTotalPages;
-  const dailyProgressRatio = dailyMinutesRead / dailyGoal;
+
+  // Active Companion
+  const companionInfo = profile?.characters || {
+    name: "Bookish Bloop",
+    description: "A cute starter buddy who loves to keep you company. Always unlocked!",
+    illustration_url: "bookish_bloop",
+  };
+
+  if (loading && !profile) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor={Theme.Colors.background} />
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          {/* Header Skeleton */}
+          <View style={styles.brandHeaderRow}>
+            <Skeleton width={44} height={44} borderRadius={12} />
+            <View style={[styles.titleWrapper, { gap: 6 }]}>
+              <Skeleton width={140} height={20} />
+              <Skeleton width={90} height={12} />
+            </View>
+          </View>
+
+          {/* Greeting Skeleton */}
+          <View style={[styles.welcomeSection, { gap: 8, marginTop: 10 }]}>
+            <Skeleton width="75%" height={24} />
+            <Skeleton width="95%" height={16} />
+            <Skeleton width="85%" height={16} />
+          </View>
+
+          {/* 1. Daily Reading Goal Card Skeleton */}
+          <View style={[styles.dashboardSection, { marginTop: 10 }]}>
+            <Skeleton width={120} height={16} style={{ marginBottom: 12 }} />
+            <Card bordered surfaceColor="surfaceContainerLowest" style={[styles.dashboardCard, { padding: 16 }]}>
+              <View style={styles.goalCardContentRow}>
+                <View style={{ flex: 1, gap: 12 }}>
+                  <Skeleton width="80%" height={28} />
+                  <Skeleton width="95%" height={14} />
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <Skeleton width={48} height={32} borderRadius={16} />
+                    <Skeleton width={48} height={32} borderRadius={16} />
+                  </View>
+                </View>
+                <View style={{ marginLeft: 16 }}>
+                  <Skeleton width={92} height={92} borderRadius={46} />
+                </View>
+              </View>
+              <Skeleton width="100%" height={36} borderRadius={8} style={{ marginTop: 12 }} />
+            </Card>
+          </View>
+
+          {/* 2. Companion Status Skeleton */}
+          <Card bordered surfaceColor="surfaceContainerLow" style={[styles.companionCard, { padding: 16 }]}>
+            <View style={styles.companionRow}>
+              <Skeleton width={48} height={48} borderRadius={24} />
+              <View style={{ marginLeft: 16, flex: 1, gap: 8 }}>
+                <Skeleton width={100} height={16} />
+                <Skeleton width="95%" height={14} />
+              </View>
+            </View>
+          </Card>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={Theme.Colors.background} />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Theme.Colors.primary]} />
+        }
+      >
         
         {/* Serene Brand Top Header */}
         <View style={styles.brandHeaderRow}>
@@ -89,9 +244,9 @@ export default function HomeView() {
               Your Serene Sanctuary
             </Text>
           </View>
-          <Pressable onPress={() => router.push("/" as any)} style={styles.catalogBackBtn}>
+          <Pressable onPress={() => router.push("/(tabs)/discover" as any)} style={styles.catalogBackBtn}>
             <Text variant="label-sm" color={Theme.Colors.primary}>
-              Catalog →
+              Explore →
             </Text>
           </Pressable>
         </View>
@@ -99,7 +254,7 @@ export default function HomeView() {
         {/* Editorial Moniker Welcome Greeting */}
         <View style={styles.welcomeSection}>
           <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.welcomeGreeting}>
-            Welcome back, Reader! ✦
+            Welcome back, {profile?.moniker || "Reader"}! ✦
           </Text>
           <Text variant="body-md" color={Theme.Colors.secondary} style={styles.sereneQuote}>
             "A room without books is like a body without a soul." Let's enjoy a quiet reading block today.
@@ -117,10 +272,10 @@ export default function HomeView() {
               {/* Left stats & controls */}
               <View style={styles.goalLeftColumn}>
                 <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.goalMinutesText}>
-                  {dailyMinutesRead} of {dailyGoal} Mins
+                  {displayMinutesRead} of {dailyGoal} Mins
                 </Text>
                 <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.goalSubText}>
-                  Focused reading block goal
+                  Focused reading block goal (linked to pages read)
                 </Text>
                 
                 <View style={styles.manualControlsRow}>
@@ -151,9 +306,9 @@ export default function HomeView() {
 
             <View style={styles.goalFooterBox}>
               <Text variant="body-md" color={Theme.Colors.onSurfaceVariant}>
-                {dailyMinutesRead >= dailyGoal 
-                  ? "✦ Excellent block complete! Ollie is highly impressed." 
-                  : `You are ${dailyGoal - dailyMinutesRead} minutes away from your serene goal.`}
+                {displayMinutesRead >= dailyGoal 
+                  ? "✦ Excellent block complete! Your companion is highly impressed." 
+                  : `You are ${dailyGoal - displayMinutesRead} minutes away from your serene goal.`}
               </Text>
             </View>
           </Card>
@@ -163,14 +318,17 @@ export default function HomeView() {
         <Card bordered surfaceColor="surfaceContainerLow" elevation="none" style={styles.companionCard}>
           <View style={styles.companionRow}>
             <View style={styles.companionAvatarFrame}>
-              <Text style={styles.companionAvatarEmoji}>🦉</Text>
+              <CharacterAvatar
+                illustrationUrl={companionInfo.illustration_url}
+                size={48}
+              />
             </View>
             <View style={styles.companionDialogueBubble}>
               <Text variant="label-md" color={Theme.Colors.onBackground} style={styles.companionName}>
-                Ollie the Scholar
+                {companionInfo.name}
               </Text>
               <Text variant="body-md" color={Theme.Colors.onSurfaceVariant}>
-                "You've maintained your serene daily reading blocks for 12 straight days! Keep the focus block quiet today."
+                "You are maintaining a great serene library sanctuary! Keep reading to unlock more magical buddies!"
               </Text>
             </View>
           </View>
@@ -182,69 +340,76 @@ export default function HomeView() {
             SEDANG DIBACA (CURRENTLY READING)
           </Text>
 
-          <Card bordered surfaceColor="surfaceContainerLowest" elevation="high" style={styles.currentlyReadingCard}>
-            <View style={styles.activeBookHeaderRow}>
-              <View style={styles.activeBookCoverPlaceholder}>
-                <Text style={styles.coverEmoji}>📖</Text>
-              </View>
-              <View style={styles.activeBookMeta}>
-                <View style={styles.activeBookBadgeRow}>
-                  <Chip label="Currently Reading" selected style={styles.badgeSpacing} />
-                  <Chip label="Fiction" style={styles.badgeSpacing} />
+          {activeUserBook ? (
+            <Card bordered surfaceColor="surfaceContainerLowest" elevation="high" style={styles.currentlyReadingCard}>
+              <View style={styles.activeBookHeaderRow}>
+                <View style={styles.activeBookCoverPlaceholder}>
+                  <Text style={styles.coverEmoji}>📖</Text>
                 </View>
-                <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.activeBookTitle}>
-                  The Shadow of the Wind
-                </Text>
-                <Text variant="label-md" color={Theme.Colors.secondary} style={styles.activeBookAuthor}>
-                  Carlos Ruiz Zafón
-                </Text>
+                <View style={styles.activeBookMeta}>
+                  <View style={styles.activeBookBadgeRow}>
+                    <Chip label="Currently Reading" selected style={styles.badgeSpacing} />
+                    <Chip label={activeUserBook.books?.genres?.name || "General"} style={styles.badgeSpacing} />
+                  </View>
+                  <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.activeBookTitle}>
+                    {activeUserBook.books?.title}
+                  </Text>
+                  <Text variant="label-md" color={Theme.Colors.secondary} style={styles.activeBookAuthor}>
+                    {activeUserBook.books?.author}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <Text variant="body-md" color={Theme.Colors.onSurfaceVariant} style={styles.activeBookDesc}>
-              A gorgeous journey into Barcelona's mysterious "Cemetery of Forgotten Books," where a young boy adopts a book that plunges him into a dark web of secrets.
-            </Text>
-
-            <View style={styles.activeProgressCircleRow}>
-              <View style={styles.activeProgressCircleLeft}>
-                <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.activeProgressLabel}>
-                  COMPLETION PROGRESSION
-                </Text>
-                <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.activeProgressCount}>
-                  {activeBookPagesRead} of {activeBookTotalPages} pages
-                </Text>
+              <View style={styles.activeProgressCircleRow}>
+                <View style={styles.activeProgressCircleLeft}>
+                  <Text variant="label-sm" color={Theme.Colors.secondary} style={styles.activeProgressLabel}>
+                    COMPLETION PROGRESSION
+                  </Text>
+                  <Text variant="headline-md" color={Theme.Colors.onBackground} style={styles.activeProgressCount}>
+                    {activeBookPagesRead} of {activeBookTotalPages} pages
+                  </Text>
+                </View>
+                <View style={styles.activeProgressCircleRight}>
+                  <ProgressCircle
+                    progress={activeProgressRatio}
+                    size={68}
+                    strokeWidth={7}
+                  />
+                </View>
               </View>
-              <View style={styles.activeProgressCircleRight}>
-                <ProgressCircle
-                  progress={activeProgressRatio}
-                  size={68}
-                  strokeWidth={7}
+
+              <View style={styles.activeManualControls}>
+                <Button
+                  title="Page back (-15)"
+                  variant="ghost"
+                  onPress={() => handleAdjustPages(activeUserBook, -15)}
+                  style={styles.halfBtn}
+                />
+                <Button
+                  title="Read ahead (+15)"
+                  variant="secondary"
+                  onPress={() => handleAdjustPages(activeUserBook, 15)}
+                  style={styles.halfBtn}
                 />
               </View>
-            </View>
-
-            <View style={styles.activeManualControls}>
+            </Card>
+          ) : (
+            <Card bordered surfaceColor="surfaceContainerLowest" elevation="low" style={styles.emptyBookCard}>
+              <Text style={styles.emptyEmoji}>🍃</Text>
+              <Text variant="headline-md" color={Theme.Colors.onBackground} align="center" style={styles.emptyTitle}>
+                Your sanctuary is calm.
+              </Text>
+              <Text variant="body-md" color={Theme.Colors.secondary} align="center" style={styles.emptyDesc}>
+                You don't have any books currently in active reading. Check out recommendations or explore catalog!
+              </Text>
               <Button
-                title="Page back (-15)"
-                variant="ghost"
-                onPress={() => handleAdjustPages(-15)}
-                style={styles.halfBtn}
+                title="Explore Discover"
+                variant="primary"
+                onPress={() => router.push("/(tabs)/discover" as any)}
+                style={styles.exploreBtn}
               />
-              <Button
-                title="Read ahead (+15)"
-                variant="secondary"
-                onPress={() => handleAdjustPages(15)}
-                style={styles.halfBtn}
-              />
-            </View>
-
-            <Button
-              title="Lanjutkan Membaca (Continue Reading)"
-              variant="primary"
-              onPress={() => Alert.alert("Sanctuary Opened", "Opening Reader view in distraction-free full-screen...")}
-              style={styles.continueReadButton}
-            />
-          </Card>
+            </Card>
+          )}
         </View>
 
         {/* 4. Serene Library Recommendation Horizontal Scroll */}
@@ -302,6 +467,16 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Theme.Colors.background,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.Colors.background,
+  },
+  loadingText: {
+    marginTop: Theme.Spacing.md,
+    color: Theme.Colors.secondary,
   },
   scrollContainer: {
     paddingHorizontal: Theme.Spacing.marginMobile,
@@ -426,7 +601,7 @@ const styles = StyleSheet.create({
   },
   companionRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   companionAvatarFrame: {
     width: 48,
@@ -435,9 +610,6 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.Colors.primaryContainer,
     alignItems: "center",
     justifyContent: "center",
-  },
-  companionAvatarEmoji: {
-    fontSize: 24,
   },
   companionDialogueBubble: {
     marginLeft: Theme.Spacing.sm,
@@ -485,10 +657,6 @@ const styles = StyleSheet.create({
   activeBookAuthor: {
     fontWeight: "600",
   },
-  activeBookDesc: {
-    lineHeight: 22,
-    marginBottom: Theme.Spacing.md,
-  },
   activeProgressInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -502,9 +670,27 @@ const styles = StyleSheet.create({
   halfBtn: {
     width: "48%",
   },
-  continueReadButton: {
-    marginTop: Theme.Spacing.xs,
-    height: 52,
+  emptyBookCard: {
+    padding: Theme.Spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Theme.Roundness.lg,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: Theme.Spacing.sm,
+  },
+  emptyTitle: {
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  emptyDesc: {
+    lineHeight: 20,
+    marginBottom: Theme.Spacing.md,
+  },
+  exploreBtn: {
+    width: "100%",
+    height: 48,
   },
   librarySection: {
     marginBottom: Theme.Spacing.xl,

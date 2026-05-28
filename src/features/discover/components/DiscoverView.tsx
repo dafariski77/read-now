@@ -5,11 +5,12 @@ import {
   ScrollView,
   TextInput,
   Pressable,
+  Alert,
 } from "react-native";
 import { Theme } from "@/core/themes";
 import { Text, ScreenContainer, Card, Chip } from "@/core/components";
 import Svg, { Path } from "react-native-svg";
-
+import useBookSync, { ExternalBook } from "@/features/books/hooks/useBookSync";
 
 interface Book {
   id: string;
@@ -20,6 +21,7 @@ interface Book {
   imageUri?: string;
   reviews?: string;
   genre?: string;
+  totalPages: number;
 }
 
 const FOR_YOU_BOOKS: Book[] = [
@@ -30,6 +32,7 @@ const FOR_YOU_BOOKS: Book[] = [
     rating: 4.8,
     coverColor: "#4352a5",
     genre: "Self-Help",
+    totalPages: 240,
   },
   {
     id: "fy2",
@@ -38,6 +41,7 @@ const FOR_YOU_BOOKS: Book[] = [
     rating: 4.5,
     coverColor: "#5c6bc0",
     genre: "Philosophy",
+    totalPages: 310,
   },
   {
     id: "fy3",
@@ -46,6 +50,7 @@ const FOR_YOU_BOOKS: Book[] = [
     rating: 4.9,
     coverColor: "#565a5c",
     genre: "Sci-Fi",
+    totalPages: 450,
   },
   {
     id: "fy4",
@@ -54,6 +59,7 @@ const FOR_YOU_BOOKS: Book[] = [
     rating: 4.2,
     coverColor: "#6e7275",
     genre: "Poetry",
+    totalPages: 180,
   },
 ];
 
@@ -66,6 +72,7 @@ const TRENDING_BOOKS: Book[] = [
     coverColor: "#4858ab",
     reviews: "12k",
     genre: "Fiction",
+    totalPages: 380,
   },
   {
     id: "tb2",
@@ -74,6 +81,7 @@ const TRENDING_BOOKS: Book[] = [
     rating: 4.4,
     coverColor: "#bac3ff",
     genre: "Literature",
+    totalPages: 290,
   },
   {
     id: "tb3",
@@ -82,6 +90,7 @@ const TRENDING_BOOKS: Book[] = [
     rating: 4.6,
     coverColor: "#c5c7c8",
     genre: "Mystery",
+    totalPages: 340,
   },
 ];
 
@@ -100,6 +109,48 @@ const StarIcon = ({ fill = true, size = 14, color = Theme.Colors.primary }) => (
 
 export default function DiscoverView() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { addBookToLibrary, loading } = useBookSync();
+
+  const handleAddBook = async (book: Book) => {
+    const externalBook: ExternalBook = {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      totalPages: book.totalPages,
+      coverImageUrl: `https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=120`,
+      genreName: book.genre,
+    };
+
+    Alert.alert(
+      "Quiet Reader Library",
+      `"${book.title}" by ${book.author}\nGenre: ${book.genre || 'Fiction'}\nPages: ${book.totalPages} pages\n\nWould you like to add this book to your digital reading sanctuary?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Add to Wishlist",
+          onPress: async () => {
+            const res = await addBookToLibrary(externalBook, "WISHLIST");
+            if (res) {
+              Alert.alert("Sanctuary Update", `"${book.title}" has been added to your Wishlist!`);
+            } else {
+              Alert.alert("Sanctuary Update", "Failed to add book. Please verify your authentication state.");
+            }
+          },
+        },
+        {
+          text: "Start Reading Now",
+          onPress: async () => {
+            const res = await addBookToLibrary(externalBook, "READING");
+            if (res) {
+              Alert.alert("Sanctuary Update", `"${book.title}" is now set as your active reading book!`);
+            } else {
+              Alert.alert("Sanctuary Update", "Failed to add book. Please verify your authentication state.");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <ScreenContainer scrollable padding={false} hasBottomTabs style={styles.container}>
@@ -154,7 +205,7 @@ export default function DiscoverView() {
           contentContainerStyle={styles.carouselScroll}
         >
           {FOR_YOU_BOOKS.map((book) => (
-            <Pressable key={book.id} style={styles.bookCard}>
+            <Pressable key={book.id} style={styles.bookCard} onPress={() => handleAddBook(book)}>
               <View style={[styles.coverContainer, { backgroundColor: book.coverColor }]}>
                 {/* Book Spine Detail for Paper feel */}
                 <View style={styles.bookSpineShadow} />
@@ -193,44 +244,46 @@ export default function DiscoverView() {
         </Text>
 
         {/* Large Bento Highlight Card */}
-        <Card style={styles.trendingHighlightCard}>
-          <View style={[styles.highlightCover, { backgroundColor: TRENDING_BOOKS[0].coverColor }]}>
-            <View style={styles.bookSpineShadow} />
-            <Text variant="label-sm" color="#ffffff" style={styles.coverGenreText}>
-              {TRENDING_BOOKS[0].genre}
-            </Text>
-          </View>
+        <Pressable onPress={() => handleAddBook(TRENDING_BOOKS[0])}>
+          <Card style={styles.trendingHighlightCard}>
+            <View style={[styles.highlightCover, { backgroundColor: TRENDING_BOOKS[0].coverColor }]}>
+              <View style={styles.bookSpineShadow} />
+              <Text variant="label-sm" color="#ffffff" style={styles.coverGenreText}>
+                {TRENDING_BOOKS[0].genre}
+              </Text>
+            </View>
 
-          <View style={styles.highlightDetails}>
-            <View style={styles.badgeRow}>
-              <Chip label="#1 Trending" style={styles.trendingBadge} />
-            </View>
-            <Text variant="headline-md" color={Theme.Colors.onSurface} style={styles.highlightTitle}>
-              {TRENDING_BOOKS[0].title}
-            </Text>
-            <Text variant="label-md" color={Theme.Colors.secondary} style={styles.highlightAuthor}>
-              By {TRENDING_BOOKS[0].author}
-            </Text>
-            <Text variant="label-sm" color={Theme.Colors.onSurfaceVariant} numberOfLines={3} style={styles.highlightDesc}>
-              A gripping exploration of memory and time, set against the backdrop of a minimalist utopian city.
-            </Text>
-            
-            <View style={styles.highlightRatingRow}>
-              <StarIcon size={14} />
-              <Text variant="label-md" color={Theme.Colors.onSurface} style={styles.highlightRatingValue}>
-                {TRENDING_BOOKS[0].rating}
+            <View style={styles.highlightDetails}>
+              <View style={styles.badgeRow}>
+                <Chip label="#1 Trending" style={styles.trendingBadge} />
+              </View>
+              <Text variant="headline-md" color={Theme.Colors.onSurface} style={styles.highlightTitle}>
+                {TRENDING_BOOKS[0].title}
               </Text>
-              <Text variant="label-sm" color={Theme.Colors.outline}>
-                ({TRENDING_BOOKS[0].reviews} reviews)
+              <Text variant="label-md" color={Theme.Colors.secondary} style={styles.highlightAuthor}>
+                By {TRENDING_BOOKS[0].author}
               </Text>
+              <Text variant="label-sm" color={Theme.Colors.onSurfaceVariant} numberOfLines={3} style={styles.highlightDesc}>
+                A gripping exploration of memory and time, set against the backdrop of a minimalist utopian city.
+              </Text>
+              
+              <View style={styles.highlightRatingRow}>
+                <StarIcon size={14} />
+                <Text variant="label-md" color={Theme.Colors.onSurface} style={styles.highlightRatingValue}>
+                  {TRENDING_BOOKS[0].rating}
+                </Text>
+                <Text variant="label-sm" color={Theme.Colors.outline}>
+                  ({TRENDING_BOOKS[0].reviews} reviews)
+                </Text>
+              </View>
             </View>
-          </View>
-        </Card>
+          </Card>
+        </Pressable>
 
         {/* Stack List smaller items */}
         <View style={styles.trendingStack}>
           {TRENDING_BOOKS.slice(1).map((book) => (
-            <Pressable key={book.id} style={styles.trendingStackRow}>
+            <Pressable key={book.id} style={styles.trendingStackRow} onPress={() => handleAddBook(book)}>
               <View style={[styles.stackCover, { backgroundColor: book.coverColor }]}>
                 <View style={styles.bookSpineShadow} />
               </View>

@@ -6,7 +6,7 @@ export default function RegisterRoute() {
   const router = useRouter();
 
   const handleSuccess = (moniker: string) => {
-    router.replace("/home");
+    router.replace("/setup-profile" as any);
   };
 
   const handleNavigateToLogin = () => {

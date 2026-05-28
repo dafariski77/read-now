@@ -8,6 +8,7 @@
     "@expo/ui": "~56.0.5",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.106.2",
+    "@tanstack/react-query": "^5.100.14",
     "expo": "~56.0.5",
     "expo-constants": "~56.0.5",
     "expo-device": "~56.0.4",
