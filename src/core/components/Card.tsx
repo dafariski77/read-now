@@ -1,24 +1,32 @@
-import React from "react";
-import { StyleSheet, View, ViewProps, ViewStyle, Platform } from "react-native";
 import { Theme } from "@/core/themes";
+import React from "react";
+import { Platform, StyleSheet, View, ViewProps, ViewStyle } from "react-native";
 
 export interface CardProps extends ViewProps {
   elevation?: "none" | "low" | "high";
   surfaceColor?: keyof typeof Theme.Colors;
   bordered?: boolean;
+  borderRadius?: keyof typeof Theme.Roundness | number;
 }
 
 export const Card: React.FC<CardProps> = ({
   elevation = "low",
   surfaceColor = "surfaceContainerLowest", // White level 1 by default
   bordered = true,
+  borderRadius = "lg",
   style,
   children,
   ...rest
 }) => {
+  const computedBorderRadius =
+    typeof borderRadius === "number"
+      ? borderRadius
+      : (Theme.Roundness[borderRadius] ?? Theme.Roundness.lg);
+
   const containerStyle: ViewStyle = {
-    backgroundColor: Theme.Colors[surfaceColor] || Theme.Colors.surfaceContainerLowest,
-    borderRadius: Theme.Roundness.lg, // 16px corner radius per spec
+    backgroundColor:
+      Theme.Colors[surfaceColor] || Theme.Colors.surfaceContainerLowest,
+    borderRadius: computedBorderRadius,
   };
 
   // Apply borders
@@ -29,7 +37,10 @@ export const Card: React.FC<CardProps> = ({
 
   // Combine styles
   return (
-    <View style={[styles.baseCard, containerStyle, styles[elevation], style]} {...rest}>
+    <View
+      style={[styles.baseCard, containerStyle, styles[elevation], style]}
+      {...rest}
+    >
       {children}
     </View>
   );

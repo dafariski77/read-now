@@ -2,15 +2,13 @@ import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   View,
-  SafeAreaView,
-  StatusBar,
   Dimensions,
   Pressable,
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Theme } from "@/core/themes";
-import { Button, Text } from "@/core/components";
+import { Button, Text, ScreenContainer } from "@/core/components";
 import {
   WelcomeStep,
   GoalsStep,
@@ -66,8 +64,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={Theme.Colors.background} />
+    <ScreenContainer scrollable={false} padding={false} header={null}>
 
       {/* Top Navigation Bar */}
       <View style={styles.progressHeaderContainer}>
@@ -159,7 +156,7 @@ export default function OnboardingScreen() {
           style={styles.continueBtn}
         />
       </View>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 

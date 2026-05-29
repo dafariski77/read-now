@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { Pressable, StyleSheet, Animated, ViewStyle, ActivityIndicator } from "react-native";
+import React, { ReactNode, useRef } from "react";
+import { Pressable, StyleSheet, Animated, ViewStyle, ActivityIndicator, View } from "react-native";
 import { Theme } from "@/core/themes";
 import Text from "./Text";
 
@@ -13,6 +13,8 @@ export interface ButtonProps {
   loading?: boolean;
   style?: ViewStyle;
   fullWidth?: boolean;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -23,6 +25,8 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   style,
   fullWidth = false,
+  leftIcon,
+  rightIcon,
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -108,14 +112,18 @@ export const Button: React.FC<ButtonProps> = ({
             size="small"
           />
         ) : (
-          <Text
-            variant="label-md"
-            color={textColor}
-            style={styles.text}
-            align="center"
-          >
-            {title}
-          </Text>
+          <>
+            {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
+            <Text
+              variant="label-md"
+              color={textColor}
+              style={styles.text}
+              align="center"
+            >
+              {title}
+            </Text>
+            {rightIcon && <View style={styles.rightIconContainer}>{rightIcon}</View>}
+          </>
         )}
       </Pressable>
     </Animated.View>
@@ -144,6 +152,16 @@ const styles = StyleSheet.create({
   },
   ghostPressed: {
     backgroundColor: Theme.Colors.surfaceContainerLow,
+  },
+  leftIconContainer: {
+    marginRight: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rightIconContainer: {
+    marginLeft: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

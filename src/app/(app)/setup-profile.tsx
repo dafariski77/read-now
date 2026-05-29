@@ -1,4 +1,4 @@
-import { Button, Card, Text, Skeleton } from "@/core/components";
+import { Button, Card, Text, Skeleton, ScreenContainer } from "@/core/components";
 import { supabase } from "@/core/libs/supabase";
 import { Theme } from "@/core/themes";
 import { AuthService } from "@/features/auth/services/AuthService";
@@ -13,9 +13,6 @@ import {
   Alert,
   Dimensions,
   Pressable,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   View,
 } from "react-native";
@@ -168,8 +165,7 @@ export default function SetupProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" backgroundColor={Theme.Colors.background} />
+      <ScreenContainer scrollable={true} padding={false} header={null} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Skeleton width={200} height={26} style={{ marginBottom: 4 }} />
           <Skeleton width={120} height={14} />
@@ -178,27 +174,25 @@ export default function SetupProfileScreen() {
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.stepContainer}>
-            <Skeleton width={180} height={22} style={{ marginBottom: 8 }} />
-            <Skeleton width="95%" height={16} />
-            <Skeleton width="85%" height={16} style={{ marginBottom: 24 }} />
+        <View style={styles.stepContainer}>
+          <Skeleton width={180} height={22} style={{ marginBottom: 8 }} />
+          <Skeleton width="95%" height={16} />
+          <Skeleton width="85%" height={16} style={{ marginBottom: 24 }} />
 
-            <View style={styles.genresGrid}>
-              {Array.from({ length: 9 }).map((_, index) => (
-                <Skeleton
-                  key={index}
-                  width={index % 2 === 0 ? 110 : 140}
-                  height={44}
-                  borderRadius={22}
-                />
-              ))}
-            </View>
-
-            <Skeleton width="100%" height={52} borderRadius={16} style={{ marginTop: 24 }} />
+          <View style={styles.genresGrid}>
+            {Array.from({ length: 9 }).map((_, index) => (
+              <Skeleton
+                key={index}
+                width={index % 2 === 0 ? 110 : 140}
+                height={44}
+                borderRadius={22}
+              />
+            ))}
           </View>
-        </ScrollView>
-      </SafeAreaView>
+
+          <Skeleton width="100%" height={52} borderRadius={16} style={{ marginTop: 24 }} />
+        </View>
+      </ScreenContainer>
     );
   }
 
@@ -207,12 +201,7 @@ export default function SetupProfileScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={Theme.Colors.background}
-      />
-
+    <ScreenContainer scrollable={true} padding={false} header={null} contentContainerStyle={styles.scrollContent}>
       {/* Top Header Step Indicators */}
       <View style={styles.header}>
         <Text
@@ -237,11 +226,6 @@ export default function SetupProfileScreen() {
           />
         </View>
       </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
         {currentStep === 0 ? (
           /* Step 1: Select Realms (Genres) */
           <View style={styles.stepContainer}>
@@ -414,8 +398,7 @@ export default function SetupProfileScreen() {
             </View>
           </View>
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 

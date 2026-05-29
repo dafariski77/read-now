@@ -11,4 +11,10 @@ export { default as ScreenContainer, ScreenContainerProps } from "./ScreenContai
 export { default as ProgressCircle, ProgressCircleProps } from "./ProgressCircle";
 export { default as CustomTabBar } from "./CustomTabBar";
 export { default as Skeleton, SkeletonProps } from "./Skeleton";
+export { default as Avatar, AvatarProps } from "./Avatar";
+export { default as ChatBubble, ChatBubbleProps } from "./ChatBubble";
+export { default as CircleIcon, CircleIconProps } from "./CircleIcon";
+
+
+
 

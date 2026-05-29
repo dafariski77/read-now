@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { StyleSheet, View, Dimensions, Alert, ActivityIndicator, RefreshControl, StatusBar } from "react-native";
 import { Theme } from "@/core/themes";
-import { Text, ScreenContainer, Card, Button, Skeleton } from "@/core/components";
+import { Text, ScreenContainer, Card, Button, Skeleton, Avatar } from "@/core/components";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import Svg, { Path } from "react-native-svg";
 import { AuthService } from "@/features/auth/services/AuthService";
@@ -117,7 +117,6 @@ export default function ProfileView() {
 
   // Get user profile metadata
   const userName = profile?.moniker || user?.user_metadata?.moniker || user?.email?.split("@")[0] || "Serene Reader";
-  const userInitials = userName.substring(0, 2).toUpperCase();
   const companionName = profile?.characters?.name || "Bookish Bloop";
 
   if (loading && !profile) {
@@ -191,11 +190,12 @@ export default function ProfileView() {
       <View style={styles.headerSection}>
         <Card style={styles.profileHeroCard}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatarCircle}>
-              <Text variant="headline-lg" color={Theme.Colors.onPrimary}>
-                {userInitials}
-              </Text>
-            </View>
+            <Avatar
+              size={90}
+              name={userName}
+              bordered
+              elevation="low"
+            />
           </View>
 
           <View style={styles.profileMeta}>

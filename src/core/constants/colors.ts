@@ -5,6 +5,7 @@ export const Colors = {
   // Base Colors
   background: "#f7f9ff",
   onBackground: "#181c20",
+  appBarBackground: "#eef0f9ff",
 
   // Primary (Soft Indigo)
   primary: "#4352a5",
