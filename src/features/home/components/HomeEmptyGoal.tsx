@@ -14,7 +14,7 @@ export default function HomeEmptyGoal() {
         size={30}
         containerSize={72}
         color="primary"
-        backgroundColor="surfaceDim"
+        backgroundColor="surfaceContainer"
       />
       <Text variant="body-md" align="center">
         Tantang dirimu dengan target membaca harian.
